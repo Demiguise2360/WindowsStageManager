@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet run:*)",
+      "Bash(ls:*)",
+      "Bash(xargs grep:*)",
+      "Bash(ffmpeg -version)",
+      "Bash(ffprobe:*)",
+      "Bash(start:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(taskkill //F //IM StageManager.exe)",
+      "Bash(grep -v \"^\\\\.$\\\\|^\\\\.\\\\.$\")"
+    ]
+  },
+  "outputStyle": "Explanatory"
+}

@@ -1,0 +1,136 @@
+<Window
+    x:Class="StageManager.MonitorPickerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Stage Manager"
+    Width="440"
+    SizeToContent="Height"
+    ResizeMode="NoResize"
+    WindowStartupLocation="CenterScreen"
+    Topmost="True"
+    ShowInTaskbar="True"
+    Icon="StageManager.ico"
+    Background="{DynamicResource PopupBackgroundBrush}"
+    Foreground="{DynamicResource PrimaryTextBrush}">
+    <Window.Resources>
+        <Style x:Key="OptionStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border
+                            x:Name="border"
+                            Margin="0,0,0,6"
+                            Padding="14,10"
+                            CornerRadius="6"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource PopupBorderBrush}"
+                            Background="{DynamicResource SectionBackgroundBrush}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ItemHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="border" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="DialogButton" TargetType="Button">
+            <Setter Property="MinWidth" Value="92" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SectionBackgroundBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="border"
+                            Padding="{TemplateBinding Padding}"
+                            CornerRadius="6"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource PopupBorderBrush}"
+                            Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ItemHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="22,20,22,20">
+        <TextBlock
+            Text="Where should Stage Manager run?"
+            FontSize="17"
+            FontWeight="SemiBold" />
+        <TextBlock
+            Margin="0,4,0,16"
+            Text="Each display gets its own stage and sidebar. The numbers now shown on your displays match the list."
+            TextWrapping="Wrap"
+            Foreground="{DynamicResource SecondaryTextBrush}" />
+
+        <ItemsControl x:Name="optionsList">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <RadioButton
+                        GroupName="monitor"
+                        Style="{StaticResource OptionStyle}"
+                        IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                        MouseDoubleClick="Option_DoubleClick">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="{Binding Detail}"
+                                FontSize="11"
+                                Foreground="{DynamicResource SecondaryTextBrush}" />
+                        </StackPanel>
+                    </RadioButton>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <CheckBox
+            x:Name="rememberCheckBox"
+            Margin="0,10,0,0"
+            Foreground="{DynamicResource PrimaryTextBrush}"
+            Content="Remember my choice and don't ask again" />
+        <TextBlock
+            Margin="20,2,0,0"
+            FontSize="11"
+            TextWrapping="Wrap"
+            Foreground="{DynamicResource SecondaryTextBrush}"
+            Text="You can change this any time in Settings (tray icon → Settings…)." />
+
+        <StackPanel
+            Margin="0,20,0,0"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right">
+            <Button
+                Style="{StaticResource DialogButton}"
+                Content="Quit"
+                IsCancel="True"
+                Click="Quit_Click" />
+            <Button
+                Style="{StaticResource DialogButton}"
+                Background="{DynamicResource AccentBrush}"
+                Foreground="White"
+                Content="Start"
+                IsDefault="True"
+                Click="Start_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>
