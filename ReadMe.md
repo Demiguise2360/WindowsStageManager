@@ -1,6 +1,6 @@
 # Stage Manager for Windows
 
-A faithful recreation of macOS [Stage Manager](https://support.apple.com/en-us/HT213315) for Windows, built on [awaescher/StageManager](https://github.com/awaescher/StageManager). The goal is full feature parity with macOS. Currently in beta.
+A faithful recreation of macOS [Stage Manager](https://support.apple.com/en-us/HT213315) for Windows, built on [awaescher/StageManager](https://github.com/awaescher/StageManager) and [depoledna/StageManagerForWindows](https://github.com/depoledna/StageManagerForWindows). The goal is full feature parity with macOS. Currently in beta.
 
 ![Stage Manager](media/current_state.gif)
 
@@ -8,10 +8,10 @@ Groups windows by process into "scenes" shown on a sidebar. Switch scenes to foc
 
 ## Usage
 
-Download and run the executable from the [Releases tab](https://github.com/BruhTheMomentum/StageManagerForWindows/releases/) or build from source:
+Build from source:
 
 ```bash
-git clone https://github.com/BruhTheMomentum/StageManagerForWindows.git
+git clone https://github.com/Demiguise2360/WindowsStageManager.git
 cd StageManager
 dotnet run --project StageManager
 ```
