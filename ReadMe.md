@@ -12,7 +12,7 @@ Build from source:
 
 ```bash
 git clone https://github.com/Demiguise2360/WindowsStageManager.git
-cd WindowsStagemanager
+cd WindowsStageManager
 dotnet run --project StageManager
 ```
 
