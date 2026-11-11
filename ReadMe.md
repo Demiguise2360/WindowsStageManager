@@ -21,7 +21,7 @@ Stage Manager groups your open windows by application into "scenes." One scene s
 
 ## Install
 
-No prebuilt download is published yet — build it from source:
+Download and run the executable from the [Releases tab](https://github.com/Demiguise2360/WindowsStageManager/releases) or build from source:
 
 ```bash
 git clone https://github.com/Demiguise2360/WindowsStageManager.git
