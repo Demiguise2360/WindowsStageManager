@@ -465,34 +465,87 @@ namespace StageManager
 		}
 
 		/// <summary>
-		/// Handles the user minimizing a window. The window itself leaves the stage for good
-		/// until it is restored; when it was the last one keeping the current scene on screen,
-		/// the whole scene is stowed back into the sidebar and the desktop is shown — the same
-		/// end state a blank desktop click produces.
+		/// Handles the user minimizing a window. A window of a scene goes into the strip rather
+		/// than the taskbar: once the minimize has run, <see cref="StowMinimizedWindow"/> brings
+		/// it back unseen and parks it, so its tile stays live and picking the tile shows it.
+		/// Left minimized, the tile had no frames and the stage it opened onto stayed empty.
 		/// </summary>
 		private void OnWindowMinimized(IWindow window)
 		{
 			if (_suspend || IsPersistentWindow(window))
 				return;
 
-			lock (_userMinimized)
-				_userMinimized.Add(window.Handle);
-
 			Log.Window("MINIMIZE", "User minimized", window);
 
+			if (FindSceneForWindow(window) is null)
+			{
+				// No scene to stow it into: it stays an ordinary minimized window.
+				lock (_userMinimized)
+					_userMinimized.Add(window.Handle);
+				return;
+			}
+
+			// MINIMIZESTART fires as the animation begins; un-minimizing mid-animation reverses
+			// it on screen instead of finishing it.
+			PostToUi(MinimizeSettleMs, () => StowMinimizedWindow(window));
+		}
+
+		private const int MinimizeSettleMs = 250;
+
+		/// <summary>
+		/// Turns a minimized window of a scene into a parked one: restored at alpha 0, moved off
+		/// screen. On stage, its scene goes into the strip and the most recent scene takes the
+		/// stage — or, if other windows of the scene are still on stage, it becomes a scene of
+		/// its own in the strip.
+		/// </summary>
+		private void StowMinimizedWindow(IWindow window)
+		{
+			// Restored again in the meantime (taskbar click), or gone.
+			if (_suspend || !window.IsMinimized || !Win32.IsWindowVisible(window.Handle))
+				return;
+
 			var scene = FindSceneForWindow(window);
-			if (scene is null || !ReferenceEquals(scene, _current))
+			if (scene is null)
 				return;
 
-			// Exclude this handle explicitly rather than trusting IsMinimized: MINIMIZESTART
-			// fires at the start of the animation and the iconic flag may not be set yet.
-			if (scene.Windows.Any(w => w.Handle != window.Handle && !w.IsMinimized))
-				return;
+			var onStage = ReferenceEquals(scene, _current);
+			var othersOnStage = onStage && scene.Windows.Any(w => w.Handle != window.Handle && !w.IsMinimized);
 
-			// Once the minimize animation is under way, the most recently used scene takes the
-			// stage — as when the app quits — rather than leaving the user on an empty desktop.
-			Log.Action($"Last window of '{scene.Title}' minimized → most recent scene takes the stage");
-			PostToUi(200, () => FillEmptyStage(scene));
+			Log.Window("MINIMIZE", "Minimized → strip", window);
+			try
+			{
+				_suspend = true;
+				Win32Helper.SetAlpha(window.Handle, 0);
+				window.ShowNormal();
+				WindowStrategy.Hide(window);
+			}
+			finally
+			{
+				_suspend = false;
+			}
+
+			if (!onStage)
+			{
+				SceneChanged?.Invoke(this, new SceneChangedEventArgs(scene, window, ChangeType.Updated));
+				return;
+			}
+
+			if (othersOnStage)
+			{
+				SeparateWindowToNewScene(window);
+				return;
+			}
+
+			// Animated, the stage window flies into its tile: the animator reads the parked
+			// window's saved spot as where the outgoing card starts.
+			var next = MostRecentScene(except: scene);
+			Log.Action(next is null
+				? $"'{scene.Title}' minimized into the strip → desktop view"
+				: $"'{scene.Title}' minimized into the strip → most recent scene '{next.Title}'");
+			if (next is null)
+				SwitchTo(null).SafeFireAndForget();
+			else
+				(AnimatedSwitch is { } animated ? animated(next) : SwitchTo(next)).SafeFireAndForget();
 		}
 
 		/// <summary>

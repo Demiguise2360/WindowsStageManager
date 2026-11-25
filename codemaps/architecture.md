@@ -136,6 +136,11 @@ Each `MainWindow` is bound to one `System.Windows.Forms.Screen`:
   re-raised above it.
 - `OverlapCheck` (500 ms `System.Threading.Timer`) only queues itself onto the dispatcher, one at a
   time: the scene's window list and the tracked windows are UI-thread state.
+- Besides the stage scene's windows, `UpdateModeByWindows` stows the strip when
+  `IsFullscreenWindowInFront`: walking the z-order from the top, the first window on this display
+  that is not ours, not click-through and not a small topmost one covers the whole monitor. Full
+  screen windows are often in no scene (topmost ones are persistent), and before this the strip
+  stayed out behind them while the icon overlay floated above — "only icons" in full screen.
 - DIP ↔ px uses `MonitorLayout.PixelsPerDip` (system DPI — the process has no per-monitor manifest).
 
 ## External dependencies

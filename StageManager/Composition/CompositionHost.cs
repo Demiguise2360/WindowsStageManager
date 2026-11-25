@@ -36,10 +36,23 @@ namespace StageManager.Composition
 			set
 			{
 				if (_destroyed) return;
-				if (_target is not null)
-					_target.Root = value;
-				else
+				if (_target is null)
+				{
 					_pendingRoot = value;
+					return;
+				}
+				try
+				{
+					_target.Root = value;
+				}
+				catch (Exception ex) when (value is null)
+				{
+					// Unmounting from a target that is already gone — the captured window
+					// closed while its tile was being torn down — throws E_INVALIDARG. There
+					// is nothing left to unmount, and letting it escape ended the process with
+					// every parked window still off-screen.
+					Log.Info("COMPHOST", $"Clearing root on a dead target: {ex.Message}");
+				}
 			}
 		}
 

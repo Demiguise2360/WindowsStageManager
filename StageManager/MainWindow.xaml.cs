@@ -413,6 +413,17 @@ namespace StageManager
 			StartHook();
 		}
 
+		protected override void OnSourceInitialized(EventArgs e)
+		{
+			base.OnSourceInitialized(e);
+
+			// ShowInTaskbar=False keeps the strip off the taskbar but not out of Alt+Tab;
+			// a tool window is left out of both.
+			_thisHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+			var exStyle = Win32.GetWindowExStyleLongPtr(_thisHandle);
+			Win32.SetWindowStyleExLongPtr(_thisHandle, (exStyle | Win32.WS_EX.WS_EX_TOOLWINDOW) & ~Win32.WS_EX.WS_EX_APPWINDOW);
+		}
+
 		/// <summary>
 		/// Everything that talks to WinRT must be torn down HERE, not in OnClosed.
 		/// OnClosing runs before WM_CLOSE destroys the window; OnClosed and the
@@ -1491,10 +1502,23 @@ namespace StageManager
 
 				_mode = value;
 
-				this.Topmost = value == WindowMode.Flyover;
+				// The strip sits above every window in all modes (Topmost in the XAML). Coming
+				// back on screen re-asserts it: a window that went topmost since then would
+				// otherwise cover the strip.
+				if (value != WindowMode.OffScreen)
+					ReassertTopmost();
 
 				ApplyWindowMode();
 			}
+		}
+
+		private void ReassertTopmost()
+		{
+			if (_thisHandle == IntPtr.Zero) return;
+			Win32.SetWindowPos(_thisHandle, Win32.HWND_TOPMOST, 0, 0, 0, 0,
+				Win32.SetWindowPosFlags.IgnoreMove | Win32.SetWindowPosFlags.IgnoreResize | Win32.SetWindowPosFlags.DoNotActivate);
+			// The app icons float on their own topmost overlay, which must stay above the strip.
+			_iconOverlay.BringToFront();
 		}
 
 		private void ApplyWindowMode()
@@ -1701,7 +1725,7 @@ namespace StageManager
 			var sidebarWidthPx = SidebarWidthPx;
 			bool doesOverlap(IWindowLocation loc) => loc.State == Native.Window.WindowState.Maximized || (loc.State == Native.Window.WindowState.Normal && loc.X - _workPx.Left < sidebarWidthPx * STOW_OVERLAP_FRACTION);
 
-			var anyOverlappingWindows = !_showRecentApps || windows.Any(w => doesOverlap(w.Location));
+			var anyOverlappingWindows = !_showRecentApps || windows.Any(w => doesOverlap(w.Location)) || IsFullscreenWindowInFront();
 
 			var mouseX = Interlocked.Read(ref _mouseX);
 			var mouseY = Interlocked.Read(ref _mouseY);
@@ -1717,6 +1741,53 @@ namespace StageManager
 					Mode = anyOverlappingWindows ? WindowMode.OffScreen : WindowMode.OnScreen;
 				});
 			}
+		}
+
+		/// <summary>
+		/// True when the frontmost window on this display covers all of it — a game, a video or
+		/// a browser in full screen. Such a window is often in no scene (topmost ones count as
+		/// persistent), so the scene check above never saw it: the strip stayed out, hidden
+		/// behind the full-screen window while its icon overlay floated above it.
+		/// <para>
+		/// Walks the z-order rather than asking for the foreground window: a video left playing
+		/// full screen here while the user works on another display is not the foreground, and
+		/// the strip must still keep off it. Small topmost windows (the taskbar, a mini player)
+		/// are looked past; any other window in front means nothing full screen is showing.
+		/// </para>
+		/// </summary>
+		private bool IsFullscreenWindowInFront()
+		{
+			var ownPid = (uint)Environment.ProcessId;
+			for (var h = Win32.GetTopWindow(IntPtr.Zero); h != IntPtr.Zero; h = Win32.GetWindow(h, Win32.GW.GW_HWNDNEXT))
+			{
+				if (!Win32.IsWindowVisible(h) || Win32.IsIconic(h) || Win32Helper.IsCloaked(h))
+					continue;
+				Win32.GetWindowThreadProcessId(h, out var pid);
+				if (pid == ownPid)
+					continue;
+				if (Helpers.DesktopShellClassifier.IsDesktopShell(h))
+					return false;
+
+				var r = new Win32.Rect();
+				if (!Win32.GetWindowRect(h, ref r)
+					|| r.Right <= _monitorPx.Left || r.Left >= _monitorPx.Right
+					|| r.Bottom <= _monitorPx.Top || r.Top >= _monitorPx.Bottom)
+					continue;
+
+				// Click-through overlays (recording indicators, game-bar layers) show nothing
+				// the strip would cover.
+				var exStyle = Win32.GetWindowExStyleLongPtr(h);
+				if (exStyle.HasFlag(Win32.WS_EX.WS_EX_TRANSPARENT))
+					continue;
+
+				if (r.Left <= _monitorPx.Left && r.Top <= _monitorPx.Top
+					&& r.Right >= _monitorPx.Right && r.Bottom >= _monitorPx.Bottom)
+					return true;
+
+				if (!exStyle.HasFlag(Win32.WS_EX.WS_EX_TOPMOST))
+					return false;
+			}
+			return false;
 		}
 
 		/// <summary>

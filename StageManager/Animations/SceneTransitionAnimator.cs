@@ -7,6 +7,7 @@ using System.Windows.Media.Animation;
 using StageManager.Controls;
 using StageManager.Helpers;
 using StageManager.Model;
+using StageManager.Native.PInvoke;
 
 namespace StageManager.Animations
 {
@@ -44,7 +45,24 @@ namespace StageManager.Animations
 		{
 			EnsureOverlay(bounds);
 			_overlay.Show();
+			RaiseOverlay();
 			Log.Info("ANIM", "Overlay warmed up");
+		}
+
+		/// <summary>
+		/// Puts the overlay back on top of the topmost band. It stays shown between flights, so
+		/// Show does not raise it, and the sidebar — topmost too — re-asserts itself whenever it
+		/// comes on screen; without this the cards flew underneath the tiles.
+		/// </summary>
+		private void RaiseOverlay()
+		{
+			if (_overlay is null) return;
+			var hwnd = new System.Windows.Interop.WindowInteropHelper(_overlay).Handle;
+			if (hwnd == IntPtr.Zero) return;
+			Win32.SetWindowPos(hwnd, Win32.HWND_TOPMOST, 0, 0, 0, 0,
+				Win32.SetWindowPosFlags.IgnoreMove |
+				Win32.SetWindowPosFlags.IgnoreResize |
+				Win32.SetWindowPosFlags.DoNotActivate);
 		}
 
 		/// <summary>
@@ -124,6 +142,7 @@ namespace StageManager.Animations
 				}
 
 				_overlay.Show();
+				RaiseOverlay();
 
 				// Force the arrange pass NOW. Adding a CompositionHost to the canvas does
 				// not create its child HWND — HwndHost.BuildWindowCore only runs during
@@ -204,6 +223,7 @@ namespace StageManager.Animations
 					?? new BorderCard(_overlay, scene.Windows.FirstOrDefault()?.Icon);
 				card.Update(source, 0.0);
 				_overlay.Show();
+				RaiseOverlay();
 				_overlay.UpdateLayout();
 				card.Update(source, 0.0);
 

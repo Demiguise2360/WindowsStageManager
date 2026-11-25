@@ -57,7 +57,11 @@ area only hides its window; it is unregistered like a cloaked one when `IsWindow
 cloak/uncloak, minimize, move/size, foreground, switch-end, location and name change.
 
 `managedDisplays` scopes the startup un-minimize (`UncloakStartupMinimized`) to displays a stage runs
-on — on any other display nothing would ever make the alpha-0 window visible again.
+on — on any other display nothing would ever make the alpha-0 window visible again. Topmost windows
+are skipped for the same reason: they are persistent, never in a scene, never shown by a stage.
+
+`EnsureWindowOnScreen` (first registration) leaves a window covering its whole monitor alone —
+clamping a full-screen window to the work area brought the taskbar back below it.
 
 **Style ownership.** `Win32Helper.SetAlpha` / `SetClickThrough` record the windows whose
 `WS_EX_LAYERED` / `WS_EX_TRANSPARENT` they added; `ClearLayered` / `ClearClickThrough` remove only
@@ -115,7 +119,8 @@ the thread pool, and stand down once `Stop` has run:
 | Follow-up | When | Does |
 |---|---|---|
 | `RefocusStage` | 300 ms after a window of the stage scene left | focus the stage's top window, unless focus is already on something visible |
-| `FillEmptyStage` | 200 ms after the stage scene lost its last window — closed, moved to another display, or its last visible window minimized | most recently on-stage scene with a non-minimized window (`_lastOnStage`, stamped in `SwitchTo`) takes the stage; desktop view if none. Stands down if a window came back meanwhile. Retries while a transition runs |
+| `StowMinimizedWindow` | 250 ms after the user minimized a window of a scene (`MinimizeSettleMs`, lets the minimize finish) | restores it at alpha 0 and parks it, so its tile stays live. On stage with other windows still showing → `SeparateWindowToNewScene`; last one on stage → most recent scene (or desktop view) takes the stage through `AnimatedSwitch`, the parked window's saved spot being where its card starts. Windows in no scene stay minimized and keep the old user-minimized mark |
+| `FillEmptyStage` | 200 ms after the stage scene lost its last window — closed or moved to another display | most recently on-stage scene with a non-minimized window (`_lastOnStage`, stamped in `SwitchTo`) takes the stage; desktop view if none. Stands down if a window came back meanwhile. Retries while a transition runs |
 | `SettleUnfocusedNewWindow` | 300 ms after a window appeared (or was shown again) unfocused with no scene | focused by then, or stacked in front of the stage (`IsInFrontOfStage`) → its scene takes the stage; else it gets a scene in the strip and is parked. Tray apps (1Password, WhatsApp) show their window without activating it |
 | `SettleParkedActivation` | 80 ms after a parked window gained the foreground | see the parked-window guard below |
 | `ScheduleForegroundRecheck` | 150 ms after a rapid focus change was filtered | `ReconcileForeground`, or the parked activation the burst swallowed |

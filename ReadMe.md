@@ -11,6 +11,8 @@ Stage Manager groups your open windows by application into "scenes." One scene s
 - **Scenes grouped by app** — windows are gathered per process into scenes; switching scenes parks the others off-screen. They keep running and compositing, so their previews stay live.
 - **Live sidebar previews** — each tile is a real-time capture of the window, tilted and scaled to match the macOS card look.
 - **Drag to regroup** — drag a window from one scene onto another to move it between groups, or onto the stage to split it out on its own.
+- **Minimize into the strip** — the minimize button (–) sends a window into the sidebar instead of the taskbar, with a live preview, ready to come back on stage.
+- **Always on top, out of the way** — the sidebar sits above every window while it shows, and stays out of Alt+Tab and the taskbar.
 - **Multi-monitor** — run a stage per display and choose which displays to manage. A picker appears at startup when more than one display is attached, and the layout adapts when displays or the taskbar change.
 - **Global hotkey** — toggle the stage on and off from anywhere. Defaults to `Ctrl + Alt + S` and is configurable.
 - **System tray menu** — turn the stage on/off, open settings, check for updates, or quit.
@@ -49,6 +51,9 @@ Swap `win-x64` for `win-arm64` on ARM devices. The release pipeline builds both 
 - **Switch scenes** — click a preview tile in the sidebar.
 - **Reveal a hidden strip** — when "show recent apps" is off, move the pointer to the screen edge to slide the strip out.
 - **Handle overflow** — when there are more scenes than the strip shows, a "N more" pill lists the rest by recency.
+- **Minimize a window** — click its minimize button (–). The window flies into its tile and the most recently used scene takes the stage; click the tile to bring it back as it was. If other windows of the same app are still on stage, the minimized one gets a tile of its own.
+- **Maximized and full-screen windows** — when a window covers the sidebar, the strip slides away; push the pointer against the left screen edge to bring it back. Games, videos and browsers in full screen (F11) keep the whole display, icons included, even when they are not focused (a video playing while you work on another display).
+- **Task Manager** — managed like any other app. On administrator accounts it runs elevated, and Windows doesn't let a normal app move it, so Stage Manager leaves it alone there.
 - **Reveal the desktop** — click the wallpaper (when enabled in settings).
 - **Change settings** — open **Settings…** from the tray menu; changes apply live, no restart needed.
 

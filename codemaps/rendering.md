@@ -13,7 +13,7 @@ the live window previews. They are bridged by `CompositionHost`, an `HwndHost`.
 |---|---|---|
 | `CaptureSession.cs` | 584 | one live window → one composition visual tree |
 | `D3DDeviceHolder.cs` | 211 | shared D3D11 device + `IDirect3DDevice`, device-lost recovery |
-| `CompositionHost.cs` | 130 | `HwndHost` child window with `WS_EX_NOREDIRECTIONBITMAP`; `Root` visual setter |
+| `CompositionHost.cs` | 130 | `HwndHost` child window with `WS_EX_NOREDIRECTIONBITMAP`; `Root` visual setter; clearing it on a dead target (captured window closed mid-teardown, `E_INVALIDARG`) is logged, not thrown — it used to end the process with every parked window off-screen |
 | `CompositorFactory.cs` | 65 | per-thread `Compositor` + `DesktopWindowTarget` |
 | `DispatcherQueueHelper.cs` | 57 | `CreateDispatcherQueueController` so WPF's thread can host a compositor |
 | `Interop/CompositionInterop.cs` | 73 | `ICompositorInterop`, `ICompositorDesktopInterop`, `ICompositionDrawingSurfaceInterop` |
@@ -164,10 +164,17 @@ falls through to whatever is behind it. Alpha 1/255 is invisible and sufficient.
 `WindowMode.OffScreen`. `Opacity = 0` alone would stop DWM compositing the tiles; parking keeps frames
 flowing. Slide-in animates `Left` back to 0 on hover — the edge trigger is 2 px where the left edge
 is a wall, 44 px otherwise (`_edgeTriggerPx`, see architecture.md), plus a window dragged into the
-buffer. `WindowMode.Flyover` sets `Topmost`. `OnRenderSizeChanged` keeps a stowed strip parked.
+buffer. `OnRenderSizeChanged` keeps a stowed strip parked.
+
+**Always on top.** The sidebar is `Topmost` in every mode (XAML). The `Mode` setter re-asserts
+`HWND_TOPMOST` (`ReassertTopmost`) whenever the strip comes on screen, so a window that went topmost
+in the meantime cannot cover it; the icon overlay, an owned window, rides along. `OnSourceInitialized`
+gives the sidebar `WS_EX_TOOLWINDOW` (and drops `WS_EX_APPWINDOW`): `ShowInTaskbar=False` alone kept
+it in Alt+Tab.
 
 The transition overlay carries `WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT` so it stays out of Alt-Tab and
-never intercepts clicks.
+never intercepts clicks. It stays shown between flights, so `SceneTransitionAnimator.RaiseOverlay`
+re-asserts `HWND_TOPMOST` on every show — the topmost sidebar would otherwise sit above the cards.
 
 ## Constraints
 

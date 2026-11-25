@@ -307,6 +307,11 @@ namespace StageManager.Native
 			if (!IsOnManagedDisplay(hwnd))
 				return;
 
+			// A topmost window (mini player, picture-in-picture) never joins a scene, so no stage
+			// would ever show it again either.
+			if (Win32.GetWindowExStyleLongPtr(hwnd).HasFlag(Win32.WS_EX.WS_EX_TOPMOST))
+				return;
+
 			try
 			{
 				// Cloak BEFORE the show call so the window emerges already invisible — no flash,
@@ -606,7 +611,15 @@ namespace StageManager.Native
 			if (!Win32.GetWindowRect(handle, ref rect))
 				return;
 
-			var wa = System.Windows.Forms.Screen.FromHandle(handle).WorkingArea;
+			var screen = System.Windows.Forms.Screen.FromHandle(handle);
+
+			// Full screen (a game, a video, F11) covers the taskbar on purpose. Clamped to the
+			// work area it came up with the taskbar showing below it.
+			var b = screen.Bounds;
+			if (rect.Left <= b.Left && rect.Top <= b.Top && rect.Right >= b.Right && rect.Bottom >= b.Bottom)
+				return;
+
+			var wa = screen.WorkingArea;
 			int w = Math.Min(rect.Width, wa.Width);
 			int h = Math.Min(rect.Height, wa.Height);
 			int x = Math.Max(wa.Left, Math.Min(rect.Left, wa.Right - w));
